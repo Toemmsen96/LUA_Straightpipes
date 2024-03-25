@@ -1,6 +1,5 @@
-# Backfire / Afterfire Mod
-This is my mod i made for Beamng.drive, you can download it here:  
-https://www.beamng.com/resources/backfire-afterfire-mod-now-customizable.6475/  
+# Straightpipes
+This mod aims to make automatically created copies of jbeam files and adjust some parameters automatically.  
 
 ## Copyright
 If you use some of my code please link the original mod and add some credits.
