@@ -24,9 +24,9 @@ end
 --write json files
 local function writeJsonFile(path, data, compact)
 	local file = io.open(path, "w")
-	print("writing to: " .. path)
+	log("I","WritingJbeam","writing to: " .. path)
 	if not file then 
-		print("ERROR: failed to open file for writing")
+		log("E","WritingJbeam","ERROR: failed to open file for writing")
 		return nil 
 	end
 	local content = json.encode(data, { indent = not compact })
@@ -94,15 +94,15 @@ local function generateStraightpipeModJbeam(originalJbeam)
 	local newJbeam = {}
 	for partKey, part in pairs(originalJbeam) do
 		-- modify component name
-		print("partKey: " .. partKey)
+		--print("partKey: " .. partKey)
 		local newPartKey = partKey .. "_straightpipe"
-		print("new partKey: " .. newPartKey)
+		--print("new partKey: " .. newPartKey)
 		part.information.name = part.information.name .. " Straightpiped"
 		part.information.Version = 1.0  -- Add version information
 		local new_coef = 1.0 --makes everything maxed out
 		-- add coefficient edits here
 		if type(part.nodes) == "table" then
-			print("found nodes in part")
+			--print("found nodes in part")
 			for i, subnode in ipairs(part.nodes) do
 				for k, v in pairs(subnode) do
 					--print("subnode[".. k .."]: " .. tostring(v))
@@ -203,16 +203,16 @@ local function loadExhaustSlot(vehicleDir)
 		local exhaustPartKey = findExhaustPart(vehicleJbeam)
 		if exhaustPartKey ~= nil and #exhaustPartKey > 0 then
 			if #exhaustPaths > 0 and exhaustPaths[#exhaustPaths]==file then
-				print("exhaust slot already found, skipping")
+				--print("exhaust slot already found, skipping")
 			else
-				print("exhaust slot found, adding file: " .. file)
+				--print("exhaust slot found, adding file: " .. file)
 				table.insert(exhaustPaths,file)
 			end
 		else
-			print("exhaust slot not found, skipping file: " .. file)
+			--print("exhaust slot not found, skipping file: " .. file)
 		end	
 	end
-	print("exhaust paths: " .. table.concat(exhaustPaths, ", "))
+	--print("exhaust paths: " .. table.concat(exhaustPaths, ", "))
 	return exhaustPaths
 end
 
