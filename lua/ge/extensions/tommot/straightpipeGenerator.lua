@@ -3,7 +3,8 @@ local M = {}
 --template
 local template = nil
 local templateVersion = -1
-local exhaustPath = nil
+local currentVersion = 1.0
+--local exhaustPaths = {}
 
 --helpers
 local function ends_with(str, ending)
@@ -36,7 +37,7 @@ end
 
 --load jbeam file from path
 local function loadExistingJbeam(path)
-	jbeamFile = readJsonFile(path)
+	local jbeamFile = readJsonFile(path)
 	if jbeamFile == nil then
 		log('D', 'loadExistingJbeam', "Failed to load existing file")
 		return nil
@@ -50,16 +51,25 @@ end
 
 
 local function getAllVehicles()
-  local vehicles = {}
-  for _, v in ipairs(FS:findFiles('/vehicles', '*', 0, false, true)) do
-    if v ~= '/vehicles/common' then
-      table.insert(vehicles, string.match(v, '/vehicles/(.*)'))
-    end
-  end
-  return vehicles
+	local vehicles = {}
+	for _, v in ipairs(FS:findFiles('/vehicles', '*', -1, false, true)) do
+		if not string.match(v, '^/vehicles/common/') then
+			local vehicleName = string.match(v, '/vehicles/(.*)')
+			if vehicleName then
+				table.insert(vehicles, vehicleName)
+			end
+		else
+			local commonVehicleName = string.match(v, '/vehicles/common/(.*)')
+			if commonVehicleName then
+				table.insert(vehicles, "common/" .. commonVehicleName)
+			end
+		end
+	end
+	return vehicles
 end
 
 local function getstraightpipeJbeamPath(vehicleDir)
+	if vehicleDir == nil then return nil end
 	local path = "/mods/unpacked/generatedStraightpipe/vehicles/" .. vehicleDir .. "/straightpipe/" .. vehicleDir .. "_straightpipes.jbeam"
 	--log('D', 'getStraightpipeJbeamPath', "loading straightpipe path: " .. path)
 	return path
@@ -88,7 +98,8 @@ local function generateStraightpipeModJbeam(originalJbeam)
 		local newPartKey = partKey .. "_straightpipe"
 		print("new partKey: " .. newPartKey)
 		part.information.name = part.information.name .. " Straightpiped"
-		local new_coef = 1.0
+		part.information.Version = 1.0  -- Add version information
+		local new_coef = 1.0 --makes everything maxed out
 		-- add coefficient edits here
 		if type(part.nodes) == "table" then
 			print("found nodes in part")
@@ -135,27 +146,40 @@ end
 
 -- part helpers
 local function findExhaustPart(vehicleJbeam) 
-	if type(vehicleJbeam) ~= 'table' then return nil end
-	
+	if type(vehicleJbeam) ~= 'table' then return {} end
+	local PartKeys = {}
+
 	for partKey, part in pairs(vehicleJbeam) do
-		-- is it valid?
-		-- print(ends_with(part.slotType, "_exhaust"))
 		if type(part.slotType) == 'table' then 
-			return nil 
+			return {} 
 		end
 		if ends_with(part.slotType, "_exhaust") then
-			log('D', 'findExhaustPart', part.slotType.." slot found.")
-			print("found exhaust slot: " .. partKey)
-			return partKey
+			--log('D', 'findExhaustPart', part.slotType.." slot found.")
+			--log('D', "found exhaust slot: " .. partKey)
+			table.insert(PartKeys, partKey)
+		end
+		if ends_with(part.slotType, "_muffler") then
+			--log('D', 'findExhaustPart', part.slotType.." slot found.")
+			--log('D', "found muffler slot: " .. partKey)
+			table.insert(PartKeys, partKey)
 		end
 	end
-	return nil
+	if #PartKeys == 0 then
+		log('W', 'findExhaustPart', "No exhaust slot found.")
+		return nil
+	else
+		log('D', 'findExhaustPart', "PartKeys found: " .. table.concat(PartKeys, ", "))
+		return PartKeys
+	end
 end
+
+--load exhaust slot
 local function loadExhaustSlot(vehicleDir)
 	--first check if a file exists named vehicleDir.jbeam
 	local vehJbeamPath = "/vehicles/" .. vehicleDir .. "/" .. vehicleDir .. "_exhaust.jbeam"
 	local vehicleJbeam = nil
-	
+	local exhaustPaths = {}
+	--[[
 	if FS:fileExists(vehJbeamPath) then
 		-- load it!
 		log('D', 'onExtensionLoaded', "loading " .. vehicleDir .. "_exhaust.jbeam for exhaust slot data")
@@ -163,28 +187,33 @@ local function loadExhaustSlot(vehicleDir)
 		exhaustPath = vehJbeamPath
 		
 		-- is it valid?
-		local exhaustPartKey = findExhaustPart(vehicleJbeam)
-		if exhaustPartKey ~= nil then
+		local exhaustPartKeys = findExhaustPart(vehicleJbeam)
+		if exhaustPartKeys ~= nil then
 			return vehicleJbeam[exhaustPartKey]
 		end
 	end
-	
+	]]--
 	--if it wasn't valid, look through all files in this vehicle dir
 	local files = FS:findFiles("/vehicles/" .. vehicleDir, "*.jbeam", -1, true, false)
 	for _, file in ipairs(files) do
 		-- load it!
-		vehicleJbeam = readJsonFile(file)
+		local vehicleJbeam = readJsonFile(file)
 		
 		-- is it valid?
 		local exhaustPartKey = findExhaustPart(vehicleJbeam)
-		if exhaustPartKey ~= nil then
-			exhaustPath = file
-			return exhaustPartKey
-		end
+		if exhaustPartKey ~= nil and #exhaustPartKey > 0 then
+			if #exhaustPaths > 0 and exhaustPaths[#exhaustPaths]==file then
+				print("exhaust slot already found, skipping")
+			else
+				print("exhaust slot found, adding file: " .. file)
+				table.insert(exhaustPaths,file)
+			end
+		else
+			print("exhaust slot not found, skipping file: " .. file)
+		end	
 	end
-	
-	--if all else fails, return nil
-	return nil
+	print("exhaust paths: " .. table.concat(exhaustPaths, ", "))
+	return exhaustPaths
 end
 
 local function getSlotTypes(slotTable)
@@ -203,30 +232,39 @@ local function generate(vehicleDir)
 	local existingData = loadExistingstraightpipeData(vehicleDir)
 	if existingData ~= nil then
 		log('D', 'onExtensionLoaded', vehicleDir .. " exists.")
-		print("existing Data: " .. tostring(existingData))
+		log("I", "existing Data: " .. tostring(existingData))
+		for partKey, part in pairs(existingData) do
+			log('D', 'VersionCheck', "Part: " .. partKey)
+			log("D", "VersionCheck", "Version: ".. part.information.Version)
+			if part.information.Version == currentVersion then
+				log('D', 'onExtensionLoaded', vehicleDir .. " up to date")
+				return
+			end
+		end
+		
 	else
 		--log('D', 'onExtensionLoaded', vehicleDir .. " NOT up to date, updating")
 	end
 	
 	local exhaustSlotData = loadExhaustSlot(vehicleDir)
 
-	if exhaustSlotData == nil then
-		--log('D', 'onExtensionLoaded', "no exhaust slot found for " .. vehicleDir)
+	if exhaustSlotData[1] == nil then
+		--log('I', 'onExtensionLoaded', "no exhaust slot found for " .. vehicleDir)
 		return
 	end
 
-	local existingJbeam = loadExistingJbeam(exhaustPath)
+	for _, exhaustPath in ipairs(exhaustSlotData) do
+		local existingJbeam = loadExistingJbeam(exhaustPath)
 
-	if existingJbeam == nil then
-		log('D', 'onExtensionLoaded', "no existing jbeam found for " .. vehicleDir)
-		return
+		if existingJbeam == nil then
+			log('E', 'onExtensionLoaded', "no existing jbeam found for " .. vehicleDir)
+			-- continue with the next exhaust path
+		else
+			log('D', 'onExtensionLoaded', "existing jbeam loaded for " .. vehicleDir.. " at path: " .. exhaustPath .. " with keys: " .. table.concat(existingJbeam, ", "))
+			-- make modifications to the existing jbeam
+			makeAndSaveNewTemplate(vehicleDir, generateStraightpipeModJbeam(existingJbeam))
+		end
 	end
-
-	
-
-	--make modifications to the existing jbeam
-	makeAndSaveNewTemplate(vehicleDir, generateStraightpipeModJbeam(existingJbeam))
-
 end
 
 local function generateAll()
@@ -234,6 +272,13 @@ local function generateAll()
 	for _,veh in pairs(getAllVehicles()) do
 		generate(veh)
 	end
+	--[[
+	generate("/vehicles/common/etk")
+	generate("/vehicles/common/pickup")
+	generate("/vehicles/common/pigeon")
+	generate("/vehicles/common/van")
+	generate("/vehicles/common/engines")
+	]]--
 	log('D', 'generateAll', "done generating")
 end
 
