@@ -81,12 +81,38 @@ end
 local function generateStraightpipeModJbeam(originalJbeam)
 	if type(originalJbeam) ~= 'table' then return nil end
 	
+	local newJbeam = {}
 	for partKey, part in pairs(originalJbeam) do
 		-- modify component name
 		print("partKey: " .. partKey)
-		partKey = partKey .. "_straightpipe"
-		print("new partKey: " .. partKey)
+		local newPartKey = partKey .. "_straightpipe"
+		print("new partKey: " .. newPartKey)
+		part.information.name = part.information.name .. " Straightpiped"
+		local new_coef = 1.0
+		-- add coefficient edits here
+		if type(part.nodes) == "table" then
+			print("found nodes in part")
+			for i, subnode in ipairs(part.nodes) do
+				for k, v in pairs(subnode) do
+					--print("subnode[".. k .."]: " .. tostring(v))
+					if type(v) == "table" and v.afterFireAudioCoef then
+						print("Found exhaust nodes: " .. subnode[1]..": ".. tostring(v))
+						v.afterFireAudioCoef = new_coef
+						v.afterFireVisualCoef = new_coef
+						v.afterFireVolumeCoef = new_coef
+						v.afterFireMufflingCoef = 0.0
+						v.exhaustAudioMufflingCoef = 0.0
+						v.exhaustAudioGainChange = 3.0
+					end
+				end
+				--print("subnode: " .. type(subnode))
+			end
+		end
+
+		-- Add your code here to modify the part object
+		newJbeam[newPartKey] = part  -- Update the modified part in the newJbeam table
 	end
+	originalJbeam = newJbeam  -- Replace the original table with the new one
 	
 	return originalJbeam
 end
