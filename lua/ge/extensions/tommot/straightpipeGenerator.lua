@@ -59,7 +59,7 @@ local function getAllVehicles()
 				table.insert(vehicles, vehicleName)
 			end
 		else
-			local commonVehicleName = string.match(v, '/vehicles/common/(.*)')
+			local commonVehicleName = string.match(v, '^/vehicles/common/(.*)')
 			if commonVehicleName then
 				table.insert(vehicles, "common/" .. commonVehicleName)
 			end
@@ -80,6 +80,10 @@ local function loadExistingstraightpipeData(vehicleDir)
 end
 
 local function makeAndSaveNewTemplate(vehicleDir, fileTemplate)
+	if fileTemplate == nil then 
+		log('E', 'makeAndSaveNewTemplate', "fileTemplate is nil")
+		return 
+	end
 	local newTemplate = deepcopy(fileTemplate)
 
 	--save it
@@ -95,6 +99,10 @@ local function generateStraightpipeModJbeam(originalJbeam)
 	for partKey, part in pairs(originalJbeam) do
 		-- modify component name
 		--print("partKey: " .. partKey)
+		if ends_with(partKey,"_straightpipe") then
+			log('D', 'generateStraightpipeModJbeam', "partKey already ends with _straightpipe, skipping")
+			return nil
+		end
 		local newPartKey = partKey .. "_straightpipe"
 		--print("new partKey: " .. newPartKey)
 		part.information.name = part.information.name .. " Straightpiped"
@@ -204,6 +212,7 @@ local function loadExhaustSlot(vehicleDir)
 		if exhaustPartKey ~= nil and #exhaustPartKey > 0 then
 			if #exhaustPaths > 0 and exhaustPaths[#exhaustPaths]==file then
 				--print("exhaust slot already found, skipping")
+				log('D', 'loadExhaustSlot', "exhaust slot already found, skipping file: " .. file)
 			else
 				--print("exhaust slot found, adding file: " .. file)
 				table.insert(exhaustPaths,file)
@@ -262,7 +271,13 @@ local function generate(vehicleDir)
 		else
 			log('D', 'onExtensionLoaded', "existing jbeam loaded for " .. vehicleDir.. " at path: " .. exhaustPath .. " with keys: " .. table.concat(existingJbeam, ", "))
 			-- make modifications to the existing jbeam
-			makeAndSaveNewTemplate(vehicleDir, generateStraightpipeModJbeam(existingJbeam))
+			local newJbeam = generateStraightpipeModJbeam(existingJbeam)
+			if newJbeam == nil then
+				log('E', 'onExtensionLoaded', "failed to generate new jbeam for " .. vehicleDir)
+			else
+				-- save the new jbeam
+				makeAndSaveNewTemplate(vehicleDir, newJbeam)
+			end
 		end
 	end
 end
@@ -289,9 +304,18 @@ local function onExtensionLoaded()
 	generateAll()
 end
 
+local function deleteTempFiles()
+	--delete all files in /mods/unpacked/generatedModSlot
+	log('W', 'deleteTempFiles', "Deleting all files in /mods/unpacked/generatedStraightpipe")
+	local files = FS:findFiles("/mods/unpacked/generatedStraightpipe", "*", -1, true, false)
+	for _, file in ipairs(files) do
+		FS:removeFile(file)
+	end
+	log('W', 'deleteTempFiles', "Done")
+end
 -- functions which should actually be exported
 M.onExtensionLoaded = onExtensionLoaded
-M.onModDeactivated = onExtensionLoaded
+M.onModDeactivated = deleteTempFiles
 M.onModActivated = onExtensionLoaded
 M.onExit = deleteTempFiles
 
