@@ -7,33 +7,26 @@ local currentVersion = 1.0
 --local exhaustPaths = {}
 
 --helpers
+local function isEmptyOrWhitespace(str)
+    return str == nil or str:match("^%s*$") ~= nil
+end
+
 local function ends_with(str, ending)
    return ending == "" or str:sub(-#ending) == ending
 end
 
-local json = require 'dkjson'  -- imports required json lib (see /lua/common/extensions/LICENSE.txt)
-
---read json files
 local function readJsonFile(path)
-    local file = io.open(path, "r")
-    if not file then return nil end
-    local content = file:read("*a")
-    file:close()
-    return content and json.decode(content) or nil
+    if isEmptyOrWhitespace(path) then
+        log('E', 'readJsonFile', "path is empty")
+        return nil
+    end
+    return jsonReadFile(path)
 end
---write json files
+
 local function writeJsonFile(path, data, compact)
-	local file = io.open(path, "w")
-	log("I","WritingJbeam","writing to: " .. path)
-	if not file then 
-		log("E","WritingJbeam","ERROR: failed to open file for writing")
-		return nil 
-	end
-	local content = json.encode(data, { indent = not compact })
-	file:write(content)
-	file:close()
-	return true
+    return jsonWriteFile(path, data, compact)
 end
+--end helpers
 
 --load jbeam file from path
 local function loadExistingJbeam(path)
