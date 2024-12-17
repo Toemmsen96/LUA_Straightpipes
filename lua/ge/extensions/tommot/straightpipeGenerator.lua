@@ -1,8 +1,5 @@
 local M = {}
-
---template
-local template = nil
-local templateVersion = -1
+--"global" variables
 local currentVersion = 1.0
 --local exhaustPaths = {}
 
@@ -25,6 +22,20 @@ end
 
 local function writeJsonFile(path, data, compact)
     return jsonWriteFile(path, data, compact)
+end
+
+local function subtract_except(str, substring)
+    local pattern = ".*(" .. substring .. ").*"
+    local match = string.match(str, pattern)
+    if match then
+        return match
+    else
+        return ""  -- Return empty string if substring not found
+    end
+end
+
+local function ends_with(str, ending)
+    return subtract_except(str,ending) == ending
 end
 --end helpers
 
@@ -72,9 +83,9 @@ local function loadExistingstraightpipeData(vehicleDir)
 	return readJsonFile(getstraightpipeJbeamPath(vehicleDir))
 end
 
-local function makeAndSaveNewTemplate(vehicleDir, fileTemplate)
+local function makeAndSaveNewJbeam(vehicleDir, fileTemplate)
 	if fileTemplate == nil then 
-		log('E', 'makeAndSaveNewTemplate', "fileTemplate is nil")
+		log('E', 'makeAndSaveNewJbeam', "fileTemplate is nil")
 		return 
 	end
 	local newTemplate = deepcopy(fileTemplate)
@@ -128,21 +139,6 @@ local function generateStraightpipeModJbeam(originalJbeam)
 	
 	return originalJbeam
 end
-
-local function subtract_except(str, substring)
-    local pattern = ".*(" .. substring .. ").*"
-    local match = string.match(str, pattern)
-    if match then
-        return match
-    else
-        return ""  -- Return empty string if substring not found
-    end
-end
-
-local function ends_with(str, ending)
-    return subtract_except(str,ending) == ending
-end
-
 
 
 -- part helpers
@@ -202,6 +198,10 @@ local function loadExhaustSlot(vehicleDir)
 		
 		-- is it valid?
 		local exhaustPartKey = findExhaustPart(vehicleJbeam)
+		if exhaustPartKey == nil then
+			--print("exhaust slot not found, skipping file: " .. file)
+			log('D', 'loadExhaustSlot', "exhaust slot not found, skipping file: " .. file)
+		end
 		if exhaustPartKey ~= nil and #exhaustPartKey > 0 then
 			if #exhaustPaths > 0 and exhaustPaths[#exhaustPaths]==file then
 				--print("exhaust slot already found, skipping")
@@ -251,7 +251,7 @@ local function generate(vehicleDir)
 	local exhaustSlotData = loadExhaustSlot(vehicleDir)
 
 	if exhaustSlotData[1] == nil then
-		--log('I', 'onExtensionLoaded', "no exhaust slot found for " .. vehicleDir)
+		log('I', 'onExtensionLoaded', "no exhaust slot found for " .. vehicleDir)
 		return
 	end
 
@@ -269,7 +269,7 @@ local function generate(vehicleDir)
 				log('E', 'onExtensionLoaded', "failed to generate new jbeam for " .. vehicleDir)
 			else
 				-- save the new jbeam
-				makeAndSaveNewTemplate(vehicleDir, newJbeam)
+				makeAndSaveNewJbeam(vehicleDir, newJbeam)
 			end
 		end
 	end
