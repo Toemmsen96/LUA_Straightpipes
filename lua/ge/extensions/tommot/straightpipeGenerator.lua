@@ -1,6 +1,6 @@
 local M = {}
 --"global" variables
-local currentVersion = 1.4
+local currentVersion = 1.0
 --local exhaustPaths = {}
 
 --helpers
@@ -115,8 +115,8 @@ local function generateStraightpipeModJbeam(originalJbeam)
             {"$afterFireAudioCoef", "range", "coef", "Exhaust", 1.0, 0.0, 1.0, "Afterfire Audio Coef", "How much audible Afterfire from the engine gets let through the exhaust.", {["stepDis"]=0.1}},
             {"$afterFireVisualCoef", "range", "coef", "Exhaust", 1.0, 0.0, 3.0, "Afterfire Visual Coef", "Visible flames and pops in the exhaust.", {["stepDis"]=0.1}},
             {"$afterFireVolumeCoef", "range", "coef", "Exhaust", 1.0, 0.0, 10.0, "Afterfire Volume Coef", "How loud pops and bangs are.", {["stepDis"]=0.1}},
-            {"$afterFireMufflingCoef", "range", "coef", "Exhaust", 0.0, 0.0, 10.0, "Afterfire Muffling Coef", "Afterfire muffling coefficient", {["stepDis"]=0.1}},
-            {"$exhaustAudioMufflingCoef", "range", "coef", "Exhaust", 0.0, 0.0, 1.0, "Exhaust Audio Muffling Coef", "Muffling of the engine. (Inversed)", {["stepDis"]=0.1}},
+            {"$afterFireMufflingCoef", "range", "coef", "Exhaust", 0.5, 0.0, 1.0, "Afterfire Muffling Coef (Inversed)", "Afterfire muffling coefficient", {["stepDis"]=0.01}},
+            {"$exhaustAudioMufflingCoef", "range", "coef", "Exhaust", 0.5, 0.0, 1.0, "Exhaust Audio Muffling Coef (Inversed)", "Muffling of the engine. (Inversed)", {["stepDis"]=0.01}},
             {"$exhaustAudioGainChange", "range", "dB", "Exhaust", 3.0, -20.0, 20.0, "Exhaust Audio Gain Change", "Exhaust Noise Gain change in Decibel", {["stepDis"]=0.1}},
         }
 
@@ -182,11 +182,15 @@ local function loadExhaustSlot(vehicleDir)
     local exhaustPaths = {}
     local files = FS:findFiles("/vehicles/" .. vehicleDir, "*.jbeam", -1, true, false)
     for _, file in ipairs(files) do
-        local vehicleJbeam = readJsonFile(file)
-        local exhaustPartKeys = findExhaustPart(vehicleJbeam)
-        if exhaustPartKeys ~= nil and #exhaustPartKeys > 0 then
-			log('D', 'loadExhaustSlot', "exhaust slot found in " .. file)
-            table.insert(exhaustPaths, file)
+        if string.find(file, "generalEngineSwap") then
+            log('D','loadExhaustSlot', "ingoring gES")
+        else
+            local vehicleJbeam = readJsonFile(file)
+            local exhaustPartKeys = findExhaustPart(vehicleJbeam)
+            if exhaustPartKeys ~= nil and #exhaustPartKeys > 0 then
+			    log('D', 'loadExhaustSlot', "exhaust slot found in " .. file)
+                table.insert(exhaustPaths, file)
+            end
         end
     end
     return exhaustPaths
@@ -226,7 +230,7 @@ local function generate(vehicleDir)
         if existingJbeam == nil then
             log('E', 'onExtensionLoaded', "no existing jbeam found for " .. vehicleDir)
         else
-            log('D', 'onExtensionLoaded', "existing jbeam loaded for " .. vehicleDir.. " at path: " .. exhaustPath .. " with keys: " .. table.concat(existingJbeam, ", "))
+            --log('D', 'onExtensionLoaded', "existing jbeam loaded for " .. vehicleDir.. " at path: " .. exhaustPath .. " with keys: " .. table.concat(existingJbeam, ", "))
             local newJbeam = generateStraightpipeModJbeam(existingJbeam)
             if newJbeam == nil then
                 log('E', 'onExtensionLoaded', "failed to generate new jbeam for " .. vehicleDir)
