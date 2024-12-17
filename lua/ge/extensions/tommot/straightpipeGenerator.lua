@@ -1,6 +1,6 @@
 local M = {}
 --"global" variables
-local currentVersion = 1.1
+local currentVersion = 1.4
 --local exhaustPaths = {}
 
 --helpers
@@ -109,19 +109,29 @@ local function generateStraightpipeModJbeam(originalJbeam)
         local newPartKey = partKey .. "_straightpipe"
         part.information.name = part.information.name .. " Straightpiped"
         part.information.Version = 1.0  -- Add version information
-        local new_coef = 1.0 --makes everything maxed out
-        -- add coefficient edits here
+         -- Define variables
+		part.variables = {
+            {"name", "type", "unit", "category", "default", "min", "max", "title", "description"},
+            {"$afterFireAudioCoef", "range", "coef", "Exhaust", 1.0, 0.0, 1.0, "Afterfire Audio Coef", "How much audible Afterfire from the engine gets let through the exhaust.", {["stepDis"]=0.1}},
+            {"$afterFireVisualCoef", "range", "coef", "Exhaust", 1.0, 0.0, 3.0, "Afterfire Visual Coef", "Visible flames and pops in the exhaust.", {["stepDis"]=0.1}},
+            {"$afterFireVolumeCoef", "range", "coef", "Exhaust", 1.0, 0.0, 10.0, "Afterfire Volume Coef", "How loud pops and bangs are.", {["stepDis"]=0.1}},
+            {"$afterFireMufflingCoef", "range", "coef", "Exhaust", 0.0, 0.0, 10.0, "Afterfire Muffling Coef", "Afterfire muffling coefficient", {["stepDis"]=0.1}},
+            {"$exhaustAudioMufflingCoef", "range", "coef", "Exhaust", 0.0, 0.0, 1.0, "Exhaust Audio Muffling Coef", "Muffling of the engine. (Inversed)", {["stepDis"]=0.1}},
+            {"$exhaustAudioGainChange", "range", "dB", "Exhaust", 3.0, -20.0, 20.0, "Exhaust Audio Gain Change", "Exhaust Noise Gain change in Decibel", {["stepDis"]=0.1}},
+        }
+
+        -- Update coefficients using variables
         if type(part.nodes) == "table" then
             for i, subnode in ipairs(part.nodes) do
                 for k, v in pairs(subnode) do
                     if type(v) == "table" and v.afterFireAudioCoef then
                         print("Found exhaust nodes: " .. subnode[1]..": ".. tostring(v))
-                        v.afterFireAudioCoef = new_coef
-                        v.afterFireVisualCoef = new_coef
-                        v.afterFireVolumeCoef = new_coef
-                        v.afterFireMufflingCoef = 0.0
-                        v.exhaustAudioMufflingCoef = 0.0
-                        v.exhaustAudioGainChange = 3.0
+                        v.afterFireAudioCoef = "$afterFireAudioCoef"
+                        v.afterFireVisualCoef = "$afterFireVisualCoef"
+                        v.afterFireVolumeCoef = "$afterFireVolumeCoef"
+                        v.afterFireMufflingCoef = "$afterFireMufflingCoef"
+                        v.exhaustAudioMufflingCoef = "$exhaustAudioMufflingCoef"
+                        v.exhaustAudioGainChange = "$exhaustAudioGainChange"
                     end
                 end
             end
