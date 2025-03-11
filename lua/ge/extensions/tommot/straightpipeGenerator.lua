@@ -128,8 +128,8 @@ local function generateStraightpipeModJbeam(originalJbeam)
         -- Add controller for valved exhaust functionality
         part.controller = {
             {"fileName"},
-            {"valvedExhausts"},
-            {"driveModes"}
+            {"valvedExhausts"}
+            --{"driveModes"}
         }
 
         part.valvedExhausts = {
