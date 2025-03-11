@@ -107,7 +107,7 @@ local function generateStraightpipeModJbeam(originalJbeam)
             goto continue -- Skip this part if it's already a straightpipe
         end
         local newPartKey = partKey .. "_straightpipe"
-        part.information.name = part.information.name .. " Straightpiped"
+        part.information.name = part.information.name .. " Customizable"
         part.information.Version = 1.0  -- Add version information
          -- Define variables
 		part.variables = {
@@ -118,6 +118,30 @@ local function generateStraightpipeModJbeam(originalJbeam)
             {"$afterFireMufflingCoef", "range", "coef", "Exhaust", 0.5, 0.0, 1.0, "Afterfire Muffling Coef (Inversed)", "Afterfire muffling coefficient", {["stepDis"]=0.01}},
             {"$exhaustAudioMufflingCoef", "range", "coef", "Exhaust", 0.5, 0.0, 1.0, "Exhaust Audio Muffling Coef (Inversed)", "Muffling of the engine. (Inversed)", {["stepDis"]=0.01}},
             {"$exhaustAudioGainChange", "range", "dB", "Exhaust", 3.0, -20.0, 20.0, "Exhaust Audio Gain Change", "Exhaust Noise Gain change in Decibel", {["stepDis"]=0.1}},
+            {"$valvedExhausts", "range", "Bool", "Exhaust", 1, 0, 1, "Valved Exhausts", "Enable valved exhaust functionality",{["stepDis"]=1}},
+            {"$valveClosedMufflingOffset", "range", "dB", "Exhaust", 0.0, -20.0, 20.0, "Valve Closed Muffling Offset", "Muffling offset when valve is closed", {["stepDis"]=0.1}},
+            {"$valveClosedGainOffset", "range", "dB", "Exhaust", 0.0, -20.0, 20.0, "Valve Closed Gain Offset", "Gain offset when valve is closed", {["stepDis"]=0.1}},
+            {"$valveOpenMufflingOffset", "range", "dB", "Exhaust", -10.0, -20.0, 20.0, "Valve Open Muffling Offset", "Muffling offset when valve is open", {["stepDis"]=0.1}},
+            {"$valveOpenGainOffset", "range", "dB", "Exhaust", 10.0, -20.0, 20.0, "Valve Open Gain Offset", "Gain offset when valve is open", {["stepDis"]=0.1}}
+        }
+
+        -- Add controller for valved exhaust functionality
+        part.controller = {
+            {"fileName"},
+            {"valvedExhausts"},
+            {"driveModes"}
+        }
+
+        part.valvedExhausts = {
+            ["valveClosed"] = {
+                ["mufflingOffset"] = "$valveClosedMufflingOffset",
+                ["gainOffset"] = "$valveClosedGainOffset"
+            },
+            ["valveOpen"] = {
+                ["mufflingOffset"] = "$valveOpenMufflingOffset",
+                ["gainOffset"] = "$valveOpenGainOffset"
+            },
+            ["enabled"] = "$valvedExhausts"
         }
 
         -- Update coefficients using variables
@@ -125,7 +149,8 @@ local function generateStraightpipeModJbeam(originalJbeam)
             for i, subnode in ipairs(part.nodes) do
                 for k, v in pairs(subnode) do
                     if type(v) == "table" and v.afterFireAudioCoef then
-                        print("Found exhaust nodes: " .. subnode[1]..": ".. tostring(v))
+                        print("Found exhaust nodes: " .. subnode[1]..": ")
+                        dump(v)
                         v.afterFireAudioCoef = "$afterFireAudioCoef"
                         v.afterFireVisualCoef = "$afterFireVisualCoef"
                         v.afterFireVolumeCoef = "$afterFireVolumeCoef"
